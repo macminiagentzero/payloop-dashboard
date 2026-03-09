@@ -1,0 +1,21 @@
+{
+  "name": "payloop-dashboard",
+  "version": "1.0.0",
+  "description": "PayLoop Admin Dashboard - Secure Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "express-session": "^1.17.3",
+    "connect-pg-simple": "^9.0.1",
+    "@prisma/client": "^5.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

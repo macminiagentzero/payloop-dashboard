@@ -1,0 +1,120 @@
+// PayLoop Dashboard - Same database as checkout
+// Using existing tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Orders (from checkout)
+model Order {
+  id              String   @id @default(uuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  amount          Float
+  status          String   @default("pending") // pending, paid, failed
+  
+  transactionId   String?
+  authCode        String?
+  gateway         String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  items           OrderItem[]
+  subscriptions   Subscription[]
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  name        String
+  price       Float
+  quantity    Int
+  productId   String?
+  
+  createdAt   DateTime @default(now())
+}
+
+// Customers
+model Customer {
+  id            String   @id @default(uuid())
+  
+  name          String?
+  email         String   @unique
+  phone         String?
+  
+  address       String?
+  city          String?
+  state         String?
+  zip           String?
+  country       String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  orders        Order[]
+  subscriptions Subscription[]
+}
+
+// Subscriptions
+model Subscription {
+  id              String   @id @default(uuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  orderId         String?
+  order           Order?   @relation(fields: [orderId], references: [id])
+  
+  name            String
+  price           Float
+  
+  gatewayId       String?
+  nmiVaultId      String?
+  spreedlyToken   String?
+  
+  status          String   @default("active")
+  
+  billingDay      Int      @default(1)
+  nextBillDate    DateTime?
+  lastBillDate    DateTime?
+  totalBills      Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Gateways
+model Gateway {
+  id            String   @id @default(uuid())
+  
+  name          String
+  type          String   @default("nmi") // nmi, stripe, etc.
+  endpoint      String?
+  securityKey   String?
+  merchantId    String?
+  
+  isActive      Boolean  @default(true)
+  isDefault     Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Dashboard Users (for authentication)
+model DashboardUser {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          String   @default("admin")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

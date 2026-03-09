@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayLoop Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Layout */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    
+    .sidebar-header {
+      padding: 0 24px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    
+    .sidebar-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .sidebar-header span {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 24px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    .nav-item.active {
+      background: #eff6ff;
+      color: var(--primary);
+      border-right: 3px solid var(--primary);
+    }
+    
+    .nav-item svg {
+      margin-right: 12px;
+      width: 20px;
+      height: 20px;
+    }
+    
+    .sidebar-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .user-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    
+    .user-info strong {
+      display: block;
+      color: var(--text);
+    }
+    
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px;
+    }
+    
+    .page-header {
+      margin-bottom: 32px;
+    }
+    
+    .page-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    /* Stats cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .stat-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+    
+    .stat-card .label {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+    
+    .stat-card .change {
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    
+    .stat-card .change.positive {
+      color: var(--success);
+    }
+    
+    /* Tables */
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .card-body {
+      padding: 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 14px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    tr:hover {
+      background: #f9fafb;
+    }
+    
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .badge-danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .badge-info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    
+    .btn-outline:hover {
+      background: var(--bg);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    /* Logout button */
+    .logout-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .logout-btn:hover {
+      background: #fee2e2;
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    
+    /* Content sections */
+    .content-section {
+      display: none;
+    }
+    
+    .content-section.active {
+      display: block;
+    }
+    
+    /* Search input */
+    .search-input {
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      width: 250px;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-overlay.show {
+      display: flex;
+    }
+    
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    
+    .modal-body {
+      padding: 24px;
+    }
+    
+    /* Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      
+      .main {
+        margin-left: 0;
+      }
+      
+      .layout {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>🦀 PayLoop</h1>
+        <span>Admin Dashboard</span>
+      </div>
+      
+      <nav>
+        <a class="nav-item active" data-page="dashboard">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" data-page="orders">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Orders
+        </a>
+        <a class="nav-item" data-page="customers">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          Customers
+        </a>
+        <a class="nav-item" data-page="subscriptions">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Subscriptions
+        </a>
+        <a class="nav-item" data-page="settings">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <strong id="userEmail">Loading...</strong>
+          <span>Administrator</span>
+        </div>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+      </div>
+    </aside>
+    
+    <!-- Main content -->
+    <main class="main">
+      <!-- Dashboard -->
+      <section class="content-section active" id="dashboard-section">
+        <div class="page-header">
+          <h2>Dashboard</h2>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="label">Total Revenue</div>
+            <div class="value" id="totalRevenue">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Monthly Revenue</div>
+            <div class="value" id="monthlyRevenue">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Orders</div>
+            <div class="value" id="totalOrders">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Customers</div>
+            <div class="value" id="totalCustomers">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Active Subscriptions</div>
+            <div class="value" id="activeSubscriptions">0</div>
+          </div>
+        </div>
+        
+        <!-- Recent orders -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Orders</h3>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="recentOrders"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Orders -->
+      <section class="content-section" id="orders-section">
+        <div class="page-header">
+          <h2>Orders</h2>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>All Orders</h3>
+            <input type="text" class="search-input" placeholder="Search orders..." id="orderSearch">
+          </div>
+          <div class="card-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Items</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Customers -->
+      <section class="content-section" id="customers-section">
+        <div class="page-header">
+          <h2>Customers</h2>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>All Customers</h3>
+            <input type="text" class="search-input" placeholder="Search customers..." id="customerSearch">
+          </div>
+          <div class="card-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Orders</th>
+                  <th>Subscriptions</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody id="customersTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Subscriptions -->
+      <section class="content-section" id="subscriptions-section">
+        <div class="page-header">
+          <h2>Subscriptions</h2>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>All Subscriptions</h3>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Bills</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="subscriptionsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Settings -->
+      <section class="content-section" id="settings-section">
+        <div class="page-header">
+          <h2>Settings</h2>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>Payment Gateways</h3>
+            <button class="btn btn-primary btn-sm" onclick="showGatewayModal()">Add Gateway</button>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Merchant ID</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="gatewaysTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+  
+  <script>
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        // Show section
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`${page}-section`).classList.add('active');
+        
+        // Load data
+        if (page === 'orders') loadOrders();
+        if (page === 'customers') loadCustomers();
+        if (page === 'subscriptions') loadSubscriptions();
+        if (page === 'settings') loadGateways();
+      });
+    });
+    
+    // Format currency
+    function formatCurrency(amount) {
+      return '$' + (amount || 0).toFixed(2);
+    }
+    
+    // Format date
+    function formatDate(date) {
+      return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+    
+    // Status badge
+    function statusBadge(status) {
+      const classes = {
+        paid: 'badge-success',
+        pending: 'badge-warning',
+        failed: 'badge-danger',
+        active: 'badge-success',
+        paused: 'badge-warning',
+        cancelled: 'badge-danger'
+      };
+      return `<span class="badge ${classes[status] || 'badge-info'}">${status}</span>`;
+    }
+    
+    // Load stats
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        
+        document.getElementById('totalRevenue').textContent = formatCurrency(data.totalRevenue);
+        document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue);
+        document.getElementById('totalOrders').textContent = data.totalOrders;
+        document.getElementById('totalCustomers').textContent = data.totalCustomers;
+        document.getElementById('activeSubscriptions').textContent = data.activeSubscriptions;
+      } catch (e) {
+        console.error('Failed to load stats', e);
+      }
+    }
+    
+    // Load recent orders (dashboard)
+    async function loadRecentOrders() {
+      try {
+        const res = await fetch('/api/orders?limit=5');
+        const orders = await res.json();
+        
+        const tbody = document.getElementById('recentOrders');
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><code>${o.id.slice(0, 8)}</code></td>
+            <td>${o.customer?.name || 'N/A'}</td>
+            <td>${formatCurrency(o.amount)}</td>
+            <td>${statusBadge(o.status)}</td>
+            <td>${formatDate(o.createdAt)}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load recent orders', e);
+      }
+    }
+    
+    // Load all orders
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/orders');
+        const orders = await res.json();
+        
+        const tbody = document.getElementById('ordersTable');
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><code>${o.id.slice(0, 8)}</code></td>
+            <td>${o.customer?.name || 'N/A'}<br><small>${o.customer?.email || ''}</small></td>
+            <td>${formatCurrency(o.amount)}</td>
+            <td>${o.items?.length || 0} items</td>
+            <td>${statusBadge(o.status)}</td>
+            <td>${formatDate(o.createdAt)}</td>
+            <td><button class="btn btn-sm btn-outline" onclick="viewOrder('${o.id}')">View</button></td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load orders', e);
+      }
+    }
+    
+    // Load customers
+    async function loadCustomers() {
+      try {
+        const res = await fetch('/api/customers');
+        const customers = await res.json();
+        
+        const tbody = document.getElementById('customersTable');
+        tbody.innerHTML = customers.map(c => `
+          <tr>
+            <td>${c.name || 'N/A'}</td>
+            <td>${c.email}</td>
+            <td>${c.orders?.length || 0}</td>
+            <td>${c.subscriptions?.length || 0}</td>
+            <td>${formatDate(c.createdAt)}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load customers', e);
+      }
+    }
+    
+    // Load subscriptions
+    async function loadSubscriptions() {
+      try {
+        const res = await fetch('/api/subscriptions');
+        const subs = await res.json();
+        
+        const tbody = document.getElementById('subscriptionsTable');
+        tbody.innerHTML = subs.map(s => `
+          <tr>
+            <td><code>${s.id.slice(0, 8)}</code></td>
+            <td>${s.customer?.name || 'N/A'}</td>
+            <td>${s.name}</td>
+            <td>${formatCurrency(s.price)}/mo</td>
+            <td>${statusBadge(s.status)}</td>
+            <td>${s.totalBills || 0}</td>
+            <td>
+              <button class="btn btn-sm btn-outline" onclick="editSubscription('${s.id}', ${s.price})">Edit</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load subscriptions', e);
+      }
+    }
+    
+    // Load gateways
+    async function loadGateways() {
+      try {
+        const res = await fetch('/api/settings/gateways');
+        const gateways = await res.json();
+        
+        const tbody = document.getElementById('gatewaysTable');
+        tbody.innerHTML = gateways.map(g => `
+          <tr>
+            <td>${g.name}</td>
+            <td>${g.type?.toUpperCase()}</td>
+            <td>${g.merchantId || 'N/A'}</td>
+            <td>${g.isActive ? statusBadge('active') : statusBadge('paused')}</td>
+            <td>
+              <button class="btn btn-sm btn-outline" onclick="testGateway('${g.id}')">Test</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load gateways', e);
+      }
+    }
+    
+    // View order
+    async function viewOrder(id) {
+      try {
+        const res = await fetch(`/api/orders/${id}`);
+        const order = await res.json();
+        
+        document.getElementById('modalTitle').textContent = `Order ${id.slice(0, 8)}`;
+        document.getElementById('modalBody').innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div>
+              <h4 style="margin-bottom: 12px;">Customer</h4>
+              <p><strong>Name:</strong> ${order.customer?.name || 'N/A'}</p>
+              <p><strong>Email:</strong> ${order.customer?.email || 'N/A'}</p>
+              <p><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
+            </div>
+            <div>
+              <h4 style="margin-bottom: 12px;">Payment</h4>
+              <p><strong>Amount:</strong> ${formatCurrency(order.amount)}</p>
+              <p><strong>Status:</strong> ${statusBadge(order.status)}</p>
+              <p><strong>Transaction ID:</strong> ${order.transactionId || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <h4 style="margin: 24px 0 12px;">Items</h4>
+          <ul style="list-style: none;">
+            ${(order.items || []).map(i => `
+              <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                ${i.name} x${i.quantity} - ${formatCurrency(i.price)}
+              </li>
+            `).join('')}
+          </ul>
+          
+          ${order.subscriptions?.length ? `
+            <h4 style="margin: 24px 0 12px;">Subscriptions</h4>
+            <ul style="list-style: none;">
+              ${order.subscriptions.map(s => `
+                <li style="padding: 8px 0;">
+                  ${s.name} - ${formatCurrency(s.price)}/mo ${statusBadge(s.status)}
+                </li>
+              `).join('')}
+            </ul>
+          ` : ''}
+        `;
+        
+        openModal();
+      } catch (e) {
+        console.error('Failed to load order', e);
+      }
+    }
+    
+    // Edit subscription
+    function editSubscription(id, currentPrice) {
+      document.getElementById('modalTitle').textContent = 'Edit Subscription';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="form-group">
+          <label>Price (monthly)</label>
+          <input type="number" id="subPrice" value="${currentPrice}" step="0.01">
+        </div>
+        <button class="btn btn-primary" onclick="saveSubscription('${id}')">Save Changes</button>
+      `;
+      openModal();
+    }
+    
+    async function saveSubscription(id) {
+      const price = document.getElementById('subPrice').value;
+      try {
+        await fetch(`/api/subscriptions/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: parseFloat(price) })
+        });
+        closeModal();
+        loadSubscriptions();
+      } catch (e) {
+        console.error('Failed to save subscription', e);
+      }
+    }
+    
+    // Test gateway
+    async function testGateway(id) {
+      try {
+        const res = await fetch(`/api/settings/gateways/${id}/test`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || (data.success ? 'Connection successful!' : 'Connection failed'));
+      } catch (e) {
+        alert('Failed to test gateway');
+      }
+    }
+    
+    // Modal
+    function openModal() {
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+    
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+    
+    // Logout
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+    
+    // Load user info
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/me');
+        const user = await res.json();
+        document.getElementById('userEmail').textContent = user.email;
+      } catch (e) {
+        window.location.href = '/login';
+      }
+    }
+    
+    // Init
+    loadUser();
+    loadStats();
+    loadRecentOrders();
+  </script>
+</body>
+</html>
