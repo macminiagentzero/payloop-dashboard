@@ -1,61 +1,37 @@
 /**
  * PAYLOOP DASHBOARD - Secure Admin Platform
  * 
- * Separate from checkout - requires login to access.
- * Connected to the same PostgreSQL database.
+ * Simple auth - no sessions, just token-based.
  */
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const session = require('express-session');
-const PgSession = require('connect-pg-simple')(session);
+const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const prisma = new PrismaClient();
 
 // ============================================
-// DASHBOARD USER QUERIES (raw SQL)
-// ============================================
-
-// Using raw queries since DashboardUser isn't in the main Prisma schema
-const dashboardUserQueries = {
-  findUnique: async (email) => {
-    const result = await prisma.$queryRaw`
-      SELECT * FROM "DashboardUser" WHERE email = ${email} LIMIT 1
-    `;
-    return result[0] || null;
-  },
-  create: async (data) => {
-    await prisma.$executeRaw`
-      INSERT INTO "DashboardUser" (id, email, "passwordHash", role, "createdAt", "updatedAt")
-      VALUES (${data.id}, ${data.email}, ${data.passwordHash}, ${data.role}, NOW(), NOW())
-    `;
-    return data;
-  }
-};
-
-// ============================================
 // CONFIGURATION
 // ============================================
 
 const CONFIG = {
-  // Session secret - CHANGE THIS IN PRODUCTION
-  sessionSecret: process.env.SESSION_SECRET || 'payloop-super-secret-key-change-in-production',
-  
-  // Admin credentials (single admin for now)
+  // Admin credentials (single admin)
   adminEmail: process.env.ADMIN_EMAIL || 'admin@mellone.co',
-  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || null, // Will be generated on first run
+  adminPassword: process.env.ADMIN_PASSWORD || 'PayLoop2024!',
   
-  // Database URL (same as checkout)
-  databaseUrl: process.env.DATABASE_URL,
+  // Auth token secret
+  tokenSecret: process.env.TOKEN_SECRET || 'payloop-secret-change-in-production',
   
   // App info
   version: '1.0.0',
   name: 'PayLoop Dashboard'
 };
+
+// Store valid tokens in memory (simple approach)
+const validTokens = new Map();
 
 // ============================================
 // MIDDLEWARE
@@ -65,38 +41,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session middleware
-app.use(session({
-  store: new PgSession({
-    conString: CONFIG.databaseUrl,
-    tableName: 'dashboard_sessions'
-  }),
-  secret: CONFIG.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
 // ============================================
 // AUTH MIDDLEWARE
 // ============================================
 
 function requireAuth(req, res, next) {
-  if (req.session && req.session.userId) {
-    return next();
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+  
+  if (!token || !validTokens.has(token)) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return res.redirect('/login');
   }
   
-  // API requests return 401
-  if (req.path.startsWith('/api/')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  // Page requests redirect to login
-  res.redirect('/login');
+  // Add user info to request
+  req.user = validTokens.get(token);
+  next();
 }
 
 // ============================================
@@ -105,96 +66,60 @@ function requireAuth(req, res, next) {
 
 // GET /login - Login page
 app.get('/login', (req, res) => {
-  if (req.session && req.session.userId) {
-    return res.redirect('/');
-  }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // POST /api/login - Login endpoint
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
   
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-  
-  try {
-    // Check admin credentials
-    if (email !== CONFIG.adminEmail) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
+  // Simple credential check
+  if (email === CONFIG.adminEmail && password === CONFIG.adminPassword) {
+    // Generate token
+    const token = crypto.randomBytes(32).toString('hex');
     
-    // Check password directly (simpler, works without DB table)
-    const validPassword = password === 'PayLoop2024!';
+    // Store token with user info
+    validTokens.set(token, {
+      email: CONFIG.adminEmail,
+      role: 'admin'
+    });
     
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    // Create session
-    req.session.userId = 'admin-001';
-    req.session.email = CONFIG.adminEmail;
-    req.session.role = 'admin';
-    
-    res.json({ success: true, message: 'Logged in successfully' });
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.json({ 
+      success: true, 
+      token,
+      email: CONFIG.adminEmail 
+    });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
   }
 });
 
 // POST /api/logout - Logout endpoint
 app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.json({ success: true });
-  });
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    validTokens.delete(token);
+  }
+  res.json({ success: true });
 });
 
 // GET /api/me - Current user info
-app.get('/api/me', requireAuth, (req, res) => {
-  res.json({
-    email: req.session.email,
-    role: req.session.role
-  });
-});
-
-// ============================================
-// PROTECTED PAGES
-// ============================================
-
-// Dashboard pages (protected)
-app.get('/', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/orders', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/customers', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/subscriptions', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/settings', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+app.get('/api/me', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token || !validTokens.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  res.json(validTokens.get(token));
 });
 
 // ============================================
 // PROTECTED API ROUTES
 // ============================================
 
-// All /api/* routes require authentication (except login/logout)
+// All /api/* routes require auth (except login/logout)
 app.use('/api', (req, res, next) => {
-  // Allow login/logout without auth
   if (req.path === '/login' || req.path === '/logout') {
     return next();
   }
@@ -463,75 +388,19 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
 });
 
 // ============================================
-// INITIALIZATION
+// START SERVER
 // ============================================
 
-async function initializeApp() {
-  try {
-    console.log('Initializing PayLoop Dashboard...');
-    
-    // Create dashboard_sessions table for sessions
-    await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS dashboard_sessions (
-        sid VARCHAR NOT NULL PRIMARY KEY,
-        sess JSON NOT NULL,
-        expire TIMESTAMP(6) NOT NULL
-      )
-    `.catch(() => console.log('Sessions table may already exist'));
-    
-    // Create DashboardUser table if not exists
-    await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS "DashboardUser" (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        "passwordHash" TEXT NOT NULL,
-        role TEXT DEFAULT 'admin',
-        "createdAt" TIMESTAMP DEFAULT NOW(),
-        "updatedAt" TIMESTAMP DEFAULT NOW()
-      )
-    `.catch(() => console.log('DashboardUser table may already exist'));
-    
-    // Check if admin user exists
-    let adminUser = await dashboardUserQueries.findUnique(CONFIG.adminEmail);
-    
-    if (!adminUser) {
-      // Create default admin user
-      const defaultPassword = 'PayLoop2024!';
-      const passwordHash = await bcrypt.hash(defaultPassword, 10);
-      
-      adminUser = await dashboardUserQueries.create({
-        id: 'admin-' + Date.now(),
-        email: CONFIG.adminEmail,
-        passwordHash,
-        role: 'admin'
-      });
-      
-      console.log('');
-      console.log('========================================');
-      console.log('🔐 DEFAULT ADMIN CREDENTIALS CREATED');
-      console.log('========================================');
-      console.log(`Email: ${CONFIG.adminEmail}`);
-      console.log(`Password: ${defaultPassword}`);
-      console.log('⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
-      console.log('========================================');
-      console.log('');
-    } else {
-      console.log('Admin user already exists:', adminUser.email);
-    }
-    
-    console.log('Dashboard initialized successfully');
-    
-  } catch (error) {
-    console.error('Initialization error:', error);
-  }
-}
-
-// Start server
 const PORT = process.env.PORT || 3002;
 
-initializeApp().then(() => {
-  app.listen(PORT, () => {
-    console.log(`PayLoop Dashboard running on port ${PORT}`);
-    console.log(`http://localhost:${PORT}`);
-  });
+app.listen(PORT, () => {
+  console.log('');
+  console.log('========================================');
+  console.log('🦀 PayLoop Dashboard');
+  console.log('========================================');
+  console.log(`Running on port ${PORT}`);
+  console.log(`Login: admin@mellone.co`);
+  console.log(`Password: PayLoop2024!`);
+  console.log('========================================');
+  console.log('');
 });

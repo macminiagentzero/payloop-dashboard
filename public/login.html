@@ -180,7 +180,10 @@
         
         const data = await response.json();
         
-        if (response.ok) {
+        if (response.ok && data.token) {
+          // Store token
+          localStorage.setItem('auth_token', data.token);
+          // Redirect to dashboard
           window.location.href = '/';
         } else {
           errorDiv.textContent = data.error || 'Login failed';

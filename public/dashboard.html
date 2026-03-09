@@ -642,6 +642,14 @@
   </div>
   
   <script>
+    // Token-based auth
+    let authToken = localStorage.getItem('auth_token');
+    
+    // Check auth on load
+    if (!authToken) {
+      window.location.href = '/login';
+    }
+    
     // Navigation
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
@@ -662,6 +670,26 @@
         if (page === 'settings') loadGateways();
       });
     });
+    
+    // API helper with auth
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+          ...options.headers
+        }
+      });
+      
+      if (res.status === 401) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        return;
+      }
+      
+      return res.json();
+    }
     
     // Format currency
     function formatCurrency(amount) {
@@ -693,8 +721,7 @@
     // Load stats
     async function loadStats() {
       try {
-        const res = await fetch('/api/stats');
-        const data = await res.json();
+        const data = await api('/api/stats');
         
         document.getElementById('totalRevenue').textContent = formatCurrency(data.totalRevenue);
         document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue);
@@ -709,8 +736,7 @@
     // Load recent orders (dashboard)
     async function loadRecentOrders() {
       try {
-        const res = await fetch('/api/orders?limit=5');
-        const orders = await res.json();
+        const orders = await api('/api/orders?limit=5');
         
         const tbody = document.getElementById('recentOrders');
         tbody.innerHTML = orders.map(o => `
@@ -730,8 +756,7 @@
     // Load all orders
     async function loadOrders() {
       try {
-        const res = await fetch('/api/orders');
-        const orders = await res.json();
+        const orders = await api('/api/orders');
         
         const tbody = document.getElementById('ordersTable');
         tbody.innerHTML = orders.map(o => `
@@ -753,8 +778,7 @@
     // Load customers
     async function loadCustomers() {
       try {
-        const res = await fetch('/api/customers');
-        const customers = await res.json();
+        const customers = await api('/api/customers');
         
         const tbody = document.getElementById('customersTable');
         tbody.innerHTML = customers.map(c => `
@@ -774,8 +798,7 @@
     // Load subscriptions
     async function loadSubscriptions() {
       try {
-        const res = await fetch('/api/subscriptions');
-        const subs = await res.json();
+        const subs = await api('/api/subscriptions');
         
         const tbody = document.getElementById('subscriptionsTable');
         tbody.innerHTML = subs.map(s => `
@@ -799,8 +822,7 @@
     // Load gateways
     async function loadGateways() {
       try {
-        const res = await fetch('/api/settings/gateways');
-        const gateways = await res.json();
+        const gateways = await api('/api/settings/gateways');
         
         const tbody = document.getElementById('gatewaysTable');
         tbody.innerHTML = gateways.map(g => `
@@ -822,8 +844,7 @@
     // View order
     async function viewOrder(id) {
       try {
-        const res = await fetch(`/api/orders/${id}`);
-        const order = await res.json();
+        const order = await api(`/api/orders/${id}`);
         
         document.getElementById('modalTitle').textContent = `Order ${id.slice(0, 8)}`;
         document.getElementById('modalBody').innerHTML = `
@@ -885,9 +906,8 @@
     async function saveSubscription(id) {
       const price = document.getElementById('subPrice').value;
       try {
-        await fetch(`/api/subscriptions/${id}`, {
+        await api(`/api/subscriptions/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ price: parseFloat(price) })
         });
         closeModal();
@@ -900,8 +920,7 @@
     // Test gateway
     async function testGateway(id) {
       try {
-        const res = await fetch(`/api/settings/gateways/${id}/test`, { method: 'POST' });
-        const data = await res.json();
+        const data = await api(`/api/settings/gateways/${id}/test`, { method: 'POST' });
         alert(data.message || (data.success ? 'Connection successful!' : 'Connection failed'));
       } catch (e) {
         alert('Failed to test gateway');
@@ -918,18 +937,18 @@
     }
     
     // Logout
-    async function logout() {
-      await fetch('/api/logout', { method: 'POST' });
+    function logout() {
+      localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
     
     // Load user info
     async function loadUser() {
       try {
-        const res = await fetch('/api/me');
-        const user = await res.json();
+        const user = await api('/api/me');
         document.getElementById('userEmail').textContent = user.email;
       } catch (e) {
+        localStorage.removeItem('auth_token');
         window.location.href = '/login';
       }
     }
