@@ -214,7 +214,7 @@ app.get('/api/orders/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         customer: true,
-        items: true,
+        paymentMethod: true,
         subscriptions: {
           include: { customer: true }
         }
@@ -225,7 +225,19 @@ app.get('/api/orders/:id', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     
-    res.json(order);
+    // Parse items JSON string
+    let items = [];
+    try {
+      items = JSON.parse(order.items || '[]');
+    } catch (e) {
+      items = [];
+    }
+    
+    // Return with parsed items
+    res.json({
+      ...order,
+      itemsParsed: items
+    });
     
   } catch (error) {
     console.error('Order error:', error);

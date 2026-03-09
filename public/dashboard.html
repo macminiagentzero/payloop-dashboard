@@ -872,63 +872,88 @@
       try {
         const order = await api(`/api/orders/${id}`);
         
-        // Parse items JSON
-        let items = [];
-        try {
-          items = JSON.parse(order.items || '[]');
-        } catch (e) {
-          items = [];
-        }
+        // Parse items (backend already parses, but just in case)
+        const items = order.itemsParsed || [];
+        
+        // Build items HTML
+        const itemsHtml = items.length > 0 ? `
+          <div style="margin-top: 16px;">
+            <h4 style="margin-bottom: 8px;">Items (${items.length})</h4>
+            ${items.map(i => `
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                ${i.image ? `<img src="${i.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">` : '<div style="width: 50px; height: 50px; background: #f3f4f6; border-radius: 8px;"></div>'}
+                <div style="flex: 1;">
+                  <div style="font-weight: 600;">${i.name || 'Product'}</div>
+                  <div style="color: #6b7280; font-size: 13px;">Qty: ${i.quantity} × $${i.price}</div>
+                </div>
+                <div style="font-weight: 600;">$${(i.price * i.quantity).toFixed(2)}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<p style="color: #6b7280;">No items</p>';
+        
+        // Build subscriptions HTML
+        const subsHtml = order.subscriptions && order.subscriptions.length > 0 ? `
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+            <h4 style="margin-bottom: 8px;">Subscriptions (${order.subscriptions.length})</h4>
+            ${order.subscriptions.map(s => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 8px;">
+                <div>
+                  <div style="font-weight: 600;">${s.name}</div>
+                  <div style="color: #6b7280; font-size: 13px;">Customer: ${s.customer?.email || 'N/A'}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-weight: 600;">$${s.price}/mo</div>
+                  <div>${statusBadge(s.status)}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
         
         document.getElementById('modalTitle').textContent = `Order ${id.slice(0, 8)}`;
         document.getElementById('modalBody').innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
             <div>
-              <h4 style="margin-bottom: 12px;">Customer</h4>
-              <p><strong>Name:</strong> ${order.customer?.firstName || ''} ${order.customer?.lastName || ''}</p>
-              <p><strong>Email:</strong> ${order.customer?.email || 'N/A'}</p>
-              <p><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
-              <p><strong>Address:</strong> ${order.customer?.address || ''}, ${order.customer?.city || ''} ${order.customer?.zip || ''}</p>
+              <h4 style="margin-bottom: 12px; color: #374151;">Customer</h4>
+              <div style="background: #f9fafb; padding: 12px; border-radius: 8px;">
+                <p style="margin: 4px 0;"><strong>Name:</strong> ${order.customer?.firstName || ''} ${order.customer?.lastName || ''}</p>
+                <p style="margin: 4px 0;"><strong>Email:</strong> ${order.customer?.email || 'N/A'}</p>
+                <p style="margin: 4px 0;"><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
+                <p style="margin: 4px 0;"><strong>Address:</strong> ${[order.customer?.address, order.customer?.city, order.customer?.state, order.customer?.zip].filter(Boolean).join(', ') || 'N/A'}</p>
+                <p style="margin: 4px 0;"><strong>Country:</strong> ${order.customer?.country || 'N/A'}</p>
+              </div>
             </div>
             <div>
-              <h4 style="margin-bottom: 12px;">Payment</h4>
-              <p><strong>Total:</strong> ${formatCurrency(order.total)}</p>
-              <p><strong>Status:</strong> ${statusBadge(order.status)}</p>
-              <p><strong>Transaction ID:</strong> ${order.nmiTransactionId || 'N/A'}</p>
-              <p><strong>Auth Code:</strong> ${order.nmiAuthCode || 'N/A'}</p>
+              <h4 style="margin-bottom: 12px; color: #374151;">Payment</h4>
+              <div style="background: #f9fafb; padding: 12px; border-radius: 8px;">
+                <p style="margin: 4px 0;"><strong>Subtotal:</strong> $${order.subtotal?.toFixed(2) || '0.00'}</p>
+                <p style="margin: 4px 0;"><strong>Tax:</strong> $${order.tax?.toFixed(2) || '0.00'}</p>
+                <p style="margin: 4px 0;"><strong>Shipping:</strong> $${order.shipping?.toFixed(2) || '0.00'}</p>
+                <p style="margin: 4px 0; font-size: 18px; font-weight: 700;"><strong>Total:</strong> $${order.total?.toFixed(2) || '0.00'}</p>
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 8px 0;">
+                <p style="margin: 4px 0;"><strong>Status:</strong> ${statusBadge(order.status)}</p>
+                <p style="margin: 4px 0;"><strong>Transaction ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${order.nmiTransactionId || 'N/A'}</code></p>
+                <p style="margin: 4px 0;"><strong>Auth Code:</strong> ${order.nmiAuthCode || 'N/A'}</p>
+                <p style="margin: 4px 0;"><strong>Gateway:</strong> ${order.gatewayId || 'N/A'}</p>
+              </div>
             </div>
           </div>
           
-          <h4 style="margin: 24px 0 12px;">Items (${items.length})</h4>
-          <ul style="list-style: none; padding: 0;">
-            ${items.map(i => `
-              <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 12px;">
-                ${i.image ? `<img src="${i.image}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">` : ''}
-                <div>
-                  <strong>${i.name || 'Product'}</strong>
-                  <div style="color: #6b7280; font-size: 13px;">
-                    $${i.price} × ${i.quantity}
-                  </div>
-                </div>
-              </li>
-            `).join('')}
-          </ul>
+          ${itemsHtml}
+          ${subsHtml}
           
-          ${order.subscriptions?.length ? `
-            <h4 style="margin: 24px 0 12px;">Subscriptions</h4>
-            <ul style="list-style: none; padding: 0;">
-              ${order.subscriptions.map(s => `
-                <li style="padding: 8px 0;">
-                  ${s.name} - ${formatCurrency(s.price)}/mo ${statusBadge(s.status)}
-                </li>
-              `).join('')}
-            </ul>
-          ` : ''}
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+            <p><strong>Order ID:</strong> ${order.id}</p>
+            <p><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+            ${order.errorMessage ? `<p style="color: #ef4444;"><strong>Error:</strong> ${order.errorMessage}</p>` : ''}
+          </div>
         `;
         
         openModal();
       } catch (e) {
         console.error('Failed to load order', e);
+        alert('Failed to load order details');
       }
     }
     
