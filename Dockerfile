@@ -4,11 +4,8 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install --production
-
-# Copy Prisma schema
 COPY prisma ./prisma/
-RUN npx prisma generate
+RUN npm install
 
 # Copy source
 COPY . .
