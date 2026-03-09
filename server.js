@@ -17,6 +17,27 @@ const app = express();
 const prisma = new PrismaClient();
 
 // ============================================
+// DASHBOARD USER QUERIES (raw SQL)
+// ============================================
+
+// Using raw queries since DashboardUser isn't in the main Prisma schema
+const dashboardUserQueries = {
+  findUnique: async (email) => {
+    const result = await prisma.$queryRaw`
+      SELECT * FROM "DashboardUser" WHERE email = ${email} LIMIT 1
+    `;
+    return result[0] || null;
+  },
+  create: async (data) => {
+    await prisma.$executeRaw`
+      INSERT INTO "DashboardUser" (id, email, "passwordHash", role, "createdAt", "updatedAt")
+      VALUES (${data.id}, ${data.email}, ${data.passwordHash}, ${data.role}, NOW(), NOW())
+    `;
+    return data;
+  }
+};
+
+// ============================================
 // CONFIGURATION
 // ============================================
 
@@ -105,11 +126,10 @@ app.post('/api/login', async (req, res) => {
     }
     
     // Get stored password hash from database or env
-    const adminUser = await prisma.dashboardUser.findUnique({
-      where: { email: CONFIG.adminEmail }
-    });
+    const adminUser = await dashboardUserQueries.findUnique(CONFIG.adminEmail);
     
     if (!adminUser) {
+      console.log('Admin user not found, returning error');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
@@ -464,37 +484,33 @@ async function initializeApp() {
         sess JSON NOT NULL,
         expire TIMESTAMP(6) NOT NULL
       )
-    `.catch(() => {});
+    `.catch(() => console.log('Sessions table may already exist'));
     
     // Create DashboardUser table if not exists
     await prisma.$executeRaw`
       CREATE TABLE IF NOT EXISTS "DashboardUser" (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        passwordHash TEXT NOT NULL,
+        "passwordHash" TEXT NOT NULL,
         role TEXT DEFAULT 'admin',
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
-    `.catch(() => {});
+    `.catch(() => console.log('DashboardUser table may already exist'));
     
     // Check if admin user exists
-    let adminUser = await prisma.dashboardUser.findUnique({
-      where: { email: CONFIG.adminEmail }
-    });
+    let adminUser = await dashboardUserQueries.findUnique(CONFIG.adminEmail);
     
     if (!adminUser) {
       // Create default admin user
       const defaultPassword = 'PayLoop2024!';
       const passwordHash = await bcrypt.hash(defaultPassword, 10);
       
-      adminUser = await prisma.dashboardUser.create({
-        data: {
-          id: 'admin-' + Date.now(),
-          email: CONFIG.adminEmail,
-          passwordHash,
-          role: 'admin'
-        }
+      adminUser = await dashboardUserQueries.create({
+        id: 'admin-' + Date.now(),
+        email: CONFIG.adminEmail,
+        passwordHash,
+        role: 'admin'
       });
       
       console.log('');
@@ -506,6 +522,8 @@ async function initializeApp() {
       console.log('⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
       console.log('========================================');
       console.log('');
+    } else {
+      console.log('Admin user already exists:', adminUser.email);
     }
     
     console.log('Dashboard initialized successfully');
@@ -524,20 +542,3 @@ initializeApp().then(() => {
     console.log(`http://localhost:${PORT}`);
   });
 });
-
-// Extend Prisma client with DashboardUser model
-prisma.dashboardUser = {
-  findUnique: async (args) => {
-    const result = await prisma.$queryRaw`
-      SELECT * FROM "DashboardUser" WHERE email = ${args.where.email} LIMIT 1
-    `;
-    return result[0] || null;
-  },
-  create: async (args) => {
-    await prisma.$executeRaw`
-      INSERT INTO "DashboardUser" (id, email, "passwordHash", role)
-      VALUES (${args.data.id}, ${args.data.email}, ${args.data.passwordHash}, ${args.data.role})
-    `;
-    return args.data;
-  }
-};
