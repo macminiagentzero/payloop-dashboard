@@ -69,6 +69,11 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+// GET / - Dashboard page (root)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
 // POST /api/login - Login endpoint
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
