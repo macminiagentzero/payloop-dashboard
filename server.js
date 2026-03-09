@@ -188,21 +188,23 @@ app.get('/api/orders', async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
     
+    console.log('Fetching orders...');
+    
     const orders = await prisma.order.findMany({
       include: {
-        customer: true,
-        items: true
+        customer: true
       },
       orderBy: { createdAt: 'desc' },
       take: parseInt(limit),
       skip: parseInt(offset)
     });
     
+    console.log(`Found ${orders.length} orders`);
     res.json(orders);
     
   } catch (error) {
     console.error('Orders error:', error);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    res.status(500).json({ error: 'Failed to fetch orders', details: error.message });
   }
 });
 
