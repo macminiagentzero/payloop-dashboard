@@ -106,7 +106,6 @@ model Subscription {
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
   name            String
-  price           Float
   
   gatewayId       String?
   nmiVaultId      String?

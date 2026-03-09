@@ -211,12 +211,12 @@
                 <h4>${s.name}</h4>
                 <div class="row">
                   <div class="col">
-                    <div class="field"><span class="field-label">Price:</span> <span class="field-value">${$(s.price)}/month</span></div>
                     <div class="field"><span class="field-label">Status:</span> <span class="status status-${s.status}">${s.status}</span></div>
+                    <div class="field"><span class="field-label">Bills:</span> <span class="field-value">${s.totalBills || 0}</span></div>
                   </div>
                   <div class="col">
-                    <div class="field"><span class="field-label">Bills:</span> <span class="field-value">${s.totalBills || 0}</span></div>
                     <div class="field"><span class="field-label">Next:</span> <span class="field-value">${s.nextBillDate ? date(s.nextBillDate) : 'N/A'}</span></div>
+                    <div class="field"><span class="field-label">Gateway:</span> <span class="field-value">${s.gatewayId || 'N/A'}</span></div>
                   </div>
                 </div>
               </div>

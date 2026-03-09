@@ -210,11 +210,12 @@ app.get('/api/orders', async (req, res) => {
 
 app.get('/api/orders/:id', async (req, res) => {
   try {
+    console.log('Fetching order:', req.params.id);
+    
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: {
-        customer: true,
-        paymentMethod: true
+        customer: true
       }
     });
     
@@ -223,9 +224,14 @@ app.get('/api/orders/:id', async (req, res) => {
     }
     
     // Get subscriptions for this customer
-    const subscriptions = await prisma.subscription.findMany({
-      where: { customerId: order.customerId }
-    });
+    let subscriptions = [];
+    try {
+      subscriptions = await prisma.subscription.findMany({
+        where: { customerId: order.customerId }
+      });
+    } catch (e) {
+      console.log('Could not fetch subscriptions:', e.message);
+    }
     
     // Parse items JSON string
     let items = [];
