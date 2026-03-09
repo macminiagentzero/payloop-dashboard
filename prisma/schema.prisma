@@ -1,4 +1,4 @@
-// PayLoop Dashboard - Same database as checkout
+// PayLoop Dashboard - Same database as checkout (exact match)
 
 generator client {
   provider = "prisma-client-js"
@@ -9,7 +9,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Orders (from checkout - using actual schema)
+// Customer information
+model Customer {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  firstName        String
+  lastName         String
+  phone            String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
+  country          String   @default("US")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  paymentMethods PaymentMethod[]
+  orders          Order[]
+  subscriptions   Subscription[]
+}
+
+// Payment methods
+model PaymentMethod {
+  id             String   @id @default(uuid())
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  nmiVaultId     String?  @unique
+  
+  cardLast4      String
+  cardType       String
+  cardExpMonth   String
+  cardExpYear    String
+  
+  isDefault      Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders        Order[]
+}
+
+// Orders
 model Order {
   id              String   @id @default(uuid())
   customerId      String
@@ -20,7 +61,6 @@ model Order {
   
   gatewayId       String?
   
-  // Order details
   type            String   @default("initial")
   
   subtotal        Float    @default(0)
@@ -29,64 +69,39 @@ model Order {
   total           Float
   currency        String   @default("USD")
   
-  items           String   // JSON string
+  items           String
+  
+  nmiTransactionId String?  @unique
+  nmiAuthCode      String?
+  nmiResponse      String?
   
   status          String   @default("pending")
+  errorMessage    String?
   
-  transactionId   String?
-  authCode        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
   subscriptions   Subscription[]
 }
 
-model Customer {
-  id            String   @id @default(uuid())
-  
-  name          String?
-  email         String   @unique
-  phone         String?
-  
-  address       String?
-  city          String?
-  state         String?
-  zip           String?
-  country       String?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  orders        Order[]
-  subscriptions Subscription[]
-  paymentMethods PaymentMethod[]
-}
-
-model PaymentMethod {
+// Payment gateways
+model PaymentGateway {
   id              String   @id @default(uuid())
-  customerId      String
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name            String   @unique
+  displayName     String
+  type            String
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
   
-  // Card details (tokenized)
-  brand           String?   // visa, mastercard, etc.
-  last4           String?
-  expiryMonth     Int?
-  expiryYear      Int?
-  
-  // NMI vault
-  nmiVaultId     String?   @unique
-  
-  // Spreedly vault
-  spreedlyToken   String?   @unique
+  nmiSecurityKey  String?
+  nmiEndpoint     String?
+  nmiMerchantId   String?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
-  orders          Order[]
 }
 
+// Subscriptions
 model Subscription {
   id              String   @id @default(uuid())
   customerId      String
@@ -111,20 +126,4 @@ model Subscription {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-}
-
-model Gateway {
-  id            String   @id @default(uuid())
-  
-  name          String
-  type          String   @default("nmi")
-  endpoint      String?
-  securityKey   String?
-  merchantId    String?
-  
-  isActive      Boolean  @default(true)
-  isDefault     Boolean  @default(false)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 }
