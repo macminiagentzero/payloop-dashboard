@@ -703,6 +703,23 @@
       return '$' + (amount || 0).toFixed(2);
     }
     
+    // Format customer name
+    function formatCustomer(customer) {
+      if (!customer) return 'N/A';
+      const name = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+      return name || customer.email || 'N/A';
+    }
+    
+    // Format items (items is JSON string)
+    function formatItems(itemsJson) {
+      try {
+        const items = JSON.parse(itemsJson || '[]');
+        return items.length;
+      } catch {
+        return 0;
+      }
+    }
+    
     // Format date
     function formatDate(date) {
       return new Date(date).toLocaleDateString('en-US', {
@@ -751,8 +768,8 @@
         tbody.innerHTML = orders.map(o => `
           <tr>
             <td><code>${o.id.slice(0, 8)}</code></td>
-            <td>${o.customer?.name || 'N/A'}</td>
-            <td>${formatCurrency(o.amount)}</td>
+            <td>${formatCustomer(o.customer)}</td>
+            <td>${formatCurrency(o.total)}</td>
             <td>${statusBadge(o.status)}</td>
             <td>${formatDate(o.createdAt)}</td>
           </tr>
@@ -771,9 +788,9 @@
         tbody.innerHTML = orders.map(o => `
           <tr>
             <td><code>${o.id.slice(0, 8)}</code></td>
-            <td>${o.customer?.name || 'N/A'}<br><small>${o.customer?.email || ''}</small></td>
-            <td>${formatCurrency(o.amount)}</td>
-            <td>${o.items?.length || 0} items</td>
+            <td>${formatCustomer(o.customer)}<br><small>${o.customer?.email || ''}</small></td>
+            <td>${formatCurrency(o.total)}</td>
+            <td>${formatItems(o.items)} items</td>
             <td>${statusBadge(o.status)}</td>
             <td>${formatDate(o.createdAt)}</td>
             <td><button class="btn btn-sm btn-outline" onclick="viewOrder('${o.id}')">View</button></td>
@@ -855,35 +872,51 @@
       try {
         const order = await api(`/api/orders/${id}`);
         
+        // Parse items JSON
+        let items = [];
+        try {
+          items = JSON.parse(order.items || '[]');
+        } catch (e) {
+          items = [];
+        }
+        
         document.getElementById('modalTitle').textContent = `Order ${id.slice(0, 8)}`;
         document.getElementById('modalBody').innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
             <div>
               <h4 style="margin-bottom: 12px;">Customer</h4>
-              <p><strong>Name:</strong> ${order.customer?.name || 'N/A'}</p>
+              <p><strong>Name:</strong> ${order.customer?.firstName || ''} ${order.customer?.lastName || ''}</p>
               <p><strong>Email:</strong> ${order.customer?.email || 'N/A'}</p>
               <p><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
+              <p><strong>Address:</strong> ${order.customer?.address || ''}, ${order.customer?.city || ''} ${order.customer?.zip || ''}</p>
             </div>
             <div>
               <h4 style="margin-bottom: 12px;">Payment</h4>
-              <p><strong>Amount:</strong> ${formatCurrency(order.amount)}</p>
+              <p><strong>Total:</strong> ${formatCurrency(order.total)}</p>
               <p><strong>Status:</strong> ${statusBadge(order.status)}</p>
-              <p><strong>Transaction ID:</strong> ${order.transactionId || 'N/A'}</p>
+              <p><strong>Transaction ID:</strong> ${order.nmiTransactionId || 'N/A'}</p>
+              <p><strong>Auth Code:</strong> ${order.nmiAuthCode || 'N/A'}</p>
             </div>
           </div>
           
-          <h4 style="margin: 24px 0 12px;">Items</h4>
-          <ul style="list-style: none;">
-            ${(order.items || []).map(i => `
-              <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-                ${i.name} x${i.quantity} - ${formatCurrency(i.price)}
+          <h4 style="margin: 24px 0 12px;">Items (${items.length})</h4>
+          <ul style="list-style: none; padding: 0;">
+            ${items.map(i => `
+              <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 12px;">
+                ${i.image ? `<img src="${i.image}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">` : ''}
+                <div>
+                  <strong>${i.name || 'Product'}</strong>
+                  <div style="color: #6b7280; font-size: 13px;">
+                    $${i.price} × ${i.quantity}
+                  </div>
+                </div>
               </li>
             `).join('')}
           </ul>
           
           ${order.subscriptions?.length ? `
             <h4 style="margin: 24px 0 12px;">Subscriptions</h4>
-            <ul style="list-style: none;">
+            <ul style="list-style: none; padding: 0;">
               ${order.subscriptions.map(s => `
                 <li style="padding: 8px 0;">
                   ${s.name} - ${formatCurrency(s.price)}/mo ${statusBadge(s.status)}
