@@ -107,9 +107,6 @@ model Subscription {
   customerId      String
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
-  orderId         String?
-  order           Order?   @relation(fields: [orderId], references: [id])
-  
   name            String
   price           Float
   
