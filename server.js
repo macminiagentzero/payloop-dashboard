@@ -261,21 +261,21 @@ app.get('/api/customers', async (req, res) => {
       ]
     } : {};
     
+    console.log('Fetching customers with where:', JSON.stringify(where));
+    
     const customers = await prisma.customer.findMany({
       where,
-      include: {
-        orders: true,
-        subscriptions: true
-      },
       orderBy: { createdAt: 'desc' },
       take: parseInt(limit)
     });
     
+    console.log(`Found ${customers.length} customers`);
     res.json(customers);
     
   } catch (error) {
     console.error('Customers error:', error);
-    res.status(500).json({ error: 'Failed to fetch customers' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Failed to fetch customers', details: error.message });
   }
 });
 
@@ -285,19 +285,22 @@ app.get('/api/customers', async (req, res) => {
 
 app.get('/api/subscriptions', async (req, res) => {
   try {
+    console.log('Fetching subscriptions...');
+    
     const subscriptions = await prisma.subscription.findMany({
       include: {
-        customer: true,
-        order: true
+        customer: true
       },
       orderBy: { createdAt: 'desc' }
     });
     
+    console.log(`Found ${subscriptions.length} subscriptions`);
     res.json(subscriptions);
     
   } catch (error) {
     console.error('Subscriptions error:', error);
-    res.status(500).json({ error: 'Failed to fetch subscriptions' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Failed to fetch subscriptions', details: error.message });
   }
 });
 
