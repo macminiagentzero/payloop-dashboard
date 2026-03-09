@@ -1,5 +1,4 @@
 // PayLoop Dashboard - Same database as checkout
-// Using existing tables
 
 generator client {
   provider = "prisma-client-js"
@@ -10,40 +9,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Orders (from checkout)
+// Orders (from checkout - using actual schema)
 model Order {
   id              String   @id @default(uuid())
   customerId      String
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
-  amount          Float
-  status          String   @default("pending") // pending, paid, failed
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  
+  gatewayId       String?
+  
+  // Order details
+  type            String   @default("initial")
+  
+  subtotal        Float    @default(0)
+  tax             Float    @default(0)
+  shipping        Float    @default(0)
+  total           Float
+  currency        String   @default("USD")
+  
+  items           String   // JSON string
+  
+  status          String   @default("pending")
   
   transactionId   String?
   authCode        String?
-  gateway         String?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
-  items           OrderItem[]
+  // Relations
   subscriptions   Subscription[]
 }
 
-model OrderItem {
-  id          String  @id @default(uuid())
-  orderId     String
-  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  name        String
-  price       Float
-  quantity    Int
-  productId   String?
-  
-  createdAt   DateTime @default(now())
-}
-
-// Customers
 model Customer {
   id            String   @id @default(uuid())
   
@@ -62,9 +61,32 @@ model Customer {
   
   orders        Order[]
   subscriptions Subscription[]
+  paymentMethods PaymentMethod[]
 }
 
-// Subscriptions
+model PaymentMethod {
+  id              String   @id @default(uuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Card details (tokenized)
+  brand           String?   // visa, mastercard, etc.
+  last4           String?
+  expiryMonth     Int?
+  expiryYear      Int?
+  
+  // NMI vault
+  nmiVaultId     String?   @unique
+  
+  // Spreedly vault
+  spreedlyToken   String?   @unique
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  orders          Order[]
+}
+
 model Subscription {
   id              String   @id @default(uuid())
   customerId      String
@@ -91,29 +113,17 @@ model Subscription {
   updatedAt       DateTime @updatedAt
 }
 
-// Gateways
 model Gateway {
   id            String   @id @default(uuid())
   
   name          String
-  type          String   @default("nmi") // nmi, stripe, etc.
+  type          String   @default("nmi")
   endpoint      String?
   securityKey   String?
   merchantId    String?
   
   isActive      Boolean  @default(true)
   isDefault     Boolean  @default(false)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-// Dashboard Users (for authentication)
-model DashboardUser {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  role          String   @default("admin")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

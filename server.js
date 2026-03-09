@@ -135,7 +135,7 @@ app.get('/api/stats', async (req, res) => {
     const totalOrders = await prisma.order.count();
     const totalRevenue = await prisma.order.aggregate({
       where: { status: 'paid' },
-      _sum: { amount: true }
+      _sum: { total: true }
     });
     const totalCustomers = await prisma.customer.count();
     const activeSubscriptions = await prisma.subscription.count({
@@ -152,15 +152,15 @@ app.get('/api/stats', async (req, res) => {
         status: 'paid',
         createdAt: { gte: startOfMonth }
       },
-      _sum: { amount: true }
+      _sum: { total: true }
     });
     
     res.json({
       totalOrders,
-      totalRevenue: totalRevenue._sum.amount || 0,
+      totalRevenue: totalRevenue._sum.total || 0,
       totalCustomers,
       activeSubscriptions,
-      monthlyRevenue: monthlyRevenue._sum.amount || 0
+      monthlyRevenue: monthlyRevenue._sum.total || 0
     });
     
   } catch (error) {
