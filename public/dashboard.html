@@ -474,12 +474,9 @@
             <div class="value" id="totalRevenue">$0</div>
           </div>
           <div class="stat-card">
-            <div class="label">Monthly Revenue</div>
-            <div class="value" id="monthlyRevenue">$0</div>
-          </div>
-          <div class="stat-card">
             <div class="label">Total Orders</div>
             <div class="value" id="totalOrders">0</div>
+            <div class="change" id="approvalRate">0% approval</div>
           </div>
           <div class="stat-card">
             <div class="label">Customers</div>
@@ -488,6 +485,16 @@
           <div class="stat-card">
             <div class="label">Active Subscriptions</div>
             <div class="value" id="activeSubscriptions">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Approved</div>
+            <div class="value" id="approvedOrders">0</div>
+            <div class="change positive">✓</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Declined</div>
+            <div class="value" id="declinedOrders">0</div>
+            <div class="change" style="color: #ef4444;">✗</div>
           </div>
         </div>
         
@@ -724,10 +731,12 @@
         const data = await api('/api/stats');
         
         document.getElementById('totalRevenue').textContent = formatCurrency(data.totalRevenue);
-        document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthlyRevenue);
         document.getElementById('totalOrders').textContent = data.totalOrders;
         document.getElementById('totalCustomers').textContent = data.totalCustomers;
-        document.getElementById('activeSubscriptions').textContent = data.activeSubscriptions;
+        document.getElementById('activeSubscriptions').textContent = data.activeSubscriptions || 0;
+        document.getElementById('approvedOrders').textContent = data.approvedOrders || data.approvedOrders || 0;
+        document.getElementById('declinedOrders').textContent = data.declinedOrders || 0;
+        document.getElementById('approvalRate').textContent = (data.approvalRate || '0') + '% approval';
       } catch (e) {
         console.error('Failed to load stats', e);
       }

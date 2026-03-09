@@ -138,8 +138,11 @@ app.use('/api', (req, res, next) => {
 app.get('/api/stats', async (req, res) => {
   try {
     const totalOrders = await prisma.order.count();
+    const approvedOrders = await prisma.order.count({
+      where: { status: 'approved' }
+    });
     const totalRevenue = await prisma.order.aggregate({
-      where: { status: 'paid' },
+      where: { status: 'approved' },
       _sum: { total: true }
     });
     const totalCustomers = await prisma.customer.count();
@@ -154,7 +157,7 @@ app.get('/api/stats', async (req, res) => {
     
     const monthlyRevenue = await prisma.order.aggregate({
       where: {
-        status: 'paid',
+        status: 'approved',
         createdAt: { gte: startOfMonth }
       },
       _sum: { total: true }
@@ -162,10 +165,13 @@ app.get('/api/stats', async (req, res) => {
     
     res.json({
       totalOrders,
+      approvedOrders,
+      declinedOrders: totalOrders - approvedOrders,
       totalRevenue: totalRevenue._sum.total || 0,
       totalCustomers,
       activeSubscriptions,
-      monthlyRevenue: monthlyRevenue._sum.total || 0
+      monthlyRevenue: monthlyRevenue._sum.total || 0,
+      approvalRate: totalOrders > 0 ? ((approvedOrders / totalOrders) * 100).toFixed(1) : '0'
     });
     
   } catch (error) {
