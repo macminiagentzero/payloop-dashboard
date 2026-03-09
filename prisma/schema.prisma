@@ -99,24 +99,14 @@ model PaymentGateway {
   updatedAt       DateTime @updatedAt
 }
 
-// Subscriptions
+// Subscriptions - minimal fields that exist in DB
 model Subscription {
   id              String   @id @default(uuid())
   customerId      String
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
   name            String
-  
-  gatewayId       String?
-  nmiVaultId      String?
-  spreedlyToken   String?
-  
   status          String   @default("active")
-  
-  billingDay      Int      @default(1)
-  nextBillDate    DateTime?
-  lastBillDate    DateTime?
-  totalBills      Int      @default(0)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
