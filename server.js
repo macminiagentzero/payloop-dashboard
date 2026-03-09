@@ -214,16 +214,18 @@ app.get('/api/orders/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         customer: true,
-        paymentMethod: true,
-        subscriptions: {
-          include: { customer: true }
-        }
+        paymentMethod: true
       }
     });
     
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
+    
+    // Get subscriptions for this customer
+    const subscriptions = await prisma.subscription.findMany({
+      where: { customerId: order.customerId }
+    });
     
     // Parse items JSON string
     let items = [];
@@ -233,10 +235,11 @@ app.get('/api/orders/:id', async (req, res) => {
       items = [];
     }
     
-    // Return with parsed items
+    // Return with parsed items and subscriptions
     res.json({
       ...order,
-      itemsParsed: items
+      itemsParsed: items,
+      subscriptions: subscriptions
     });
     
   } catch (error) {

@@ -3,294 +3,242 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PayLoop Dashboard</title>
+  <title>PayLoop - Orders</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --primary: #6366f1; --primary-dark: #4f46e5; --bg: #f8fafc; --card: #fff;
-      --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0;
-      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
-    }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
-    .layout { display: flex; min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; }
     
-    /* Sidebar */
-    .sidebar { width: 240px; background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%); padding: 20px 0; position: fixed; height: 100vh; }
-    .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
-    .sidebar-logo h1 { font-size: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
-    .nav-item { display: flex; align-items: center; padding: 12px 20px; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
-    .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; border-left-color: #818cf8; }
-    .nav-item svg { width: 20px; height: 20px; margin-right: 12px; }
-    .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
-    .sidebar-footer button { width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: rgba(255,255,255,0.8); cursor: pointer; }
-    .sidebar-footer button:hover { background: rgba(239,68,68,0.3); color: #fff; }
-    
-    /* Main */
-    .main { flex: 1; margin-left: 240px; padding: 30px; }
-    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
-    .page-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+    /* Header */
+    .header { background: white; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+    .header button { padding: 8px 16px; background: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .header button:hover { background: #e2e8f0; }
     
     /* Stats */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 25px; }
-    .stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
-    .stat-card .label { color: var(--text-muted); font-size: 13px; margin-bottom: 5px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; }
-    .stat-card.success { border-top: 3px solid var(--success); }
-    .stat-card.warning { border-top: 3px solid var(--warning); }
-    .stat-card.danger { border-top: 3px solid var(--danger); }
+    .stats { display: flex; gap: 16px; padding: 24px; flex-wrap: wrap; }
+    .stat { background: white; padding: 20px; border-radius: 8px; min-width: 150px; }
+    .stat-label { color: #64748b; font-size: 13px; margin-bottom: 4px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
     
-    /* Badge */
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .badge-approved, .badge-active, .badge-paid { background: #d1fae5; color: #065f46; }
-    .badge-pending { background: #fef3c7; color: #92400e; }
-    .badge-declined, .badge-failed, .badge-cancelled { background: #fee2e2; color: #991b1b; }
-    
-    /* Card */
-    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
-    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .card-header h3 { font-size: 16px; font-weight: 600; }
-    .card-body { padding: 0; }
-    
-    /* Table */
+    /* Orders */
+    .orders { background: white; margin: 0 24px 24px; border-radius: 8px; overflow: hidden; }
+    .orders-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: #f9fafb; font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--text-muted); }
-    tr:hover td { background: #f9fafb; }
-    
-    /* Button */
-    .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-dark); }
-    .btn-secondary { background: #f1f5f9; color: var(--text); }
-    .btn-secondary:hover { background: #e2e8f0; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th { background: #f8fafc; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #64748b; }
+    tr:hover td { background: #f8fafc; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-approved { background: #d1fae5; color: #065f46; }
+    .status-declined { background: #fee2e2; color: #991b1b; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .btn { padding: 6px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .btn:hover { background: #4f46e5; }
     
     /* Modal */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-    .modal-overlay.show { display: flex; }
-    .modal { background: var(--card); border-radius: 12px; width: 100%; max-width: 700px; max-height: 85vh; overflow-y: auto; }
-    .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--card); }
-    .modal-header h3 { font-size: 18px; }
-    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); }
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal.show { display: flex; }
+    .modal-content { background: white; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 18px; }
+    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: #64748b; line-height: 1; }
     .modal-body { padding: 20px; }
     
-    /* Grid */
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .box { background: #f8fafc; padding: 16px; border-radius: 8px; }
-    .box h4 { font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; letter-spacing: 0.05em; }
-    .box p { margin: 8px 0; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 12px; text-transform: uppercase; color: #64748b; margin-bottom: 10px; letter-spacing: 0.05em; }
+    .row { display: flex; gap: 20px; }
+    .col { flex: 1; }
+    .field { margin-bottom: 8px; }
+    .field-label { font-size: 12px; color: #64748b; }
+    .field-value { font-weight: 500; }
     
-    /* Content sections */
-    .content-section { display: none; }
-    .content-section.active { display: block; }
+    .items-list { background: #f8fafc; border-radius: 8px; padding: 12px; }
+    .item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+    .item:last-child { border-bottom: none; }
+    .item img { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; }
+    .item-info { flex: 1; }
+    .item-price { font-weight: 600; }
+    
+    .subscription-box { background: #ede9fe; padding: 16px; border-radius: 8px; }
+    .subscription-box h4 { margin-bottom: 8px; }
+    
+    .empty { text-align: center; padding: 40px; color: #64748b; }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-logo"><h1><span>🦀</span> PayLoop</h1></div>
-      <nav>
-        <a class="nav-item active" data-page="dashboard"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg> Dashboard</a>
-        <a class="nav-item" data-page="orders"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Orders</a>
-        <a class="nav-item" data-page="customers"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> Customers</a>
-        <a class="nav-item" data-page="subscriptions"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Subscriptions</a>
-        <a class="nav-item" data-page="settings"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Settings</a>
-      </nav>
-      <div class="sidebar-footer">
-        <button onclick="logout()">Sign Out</button>
-      </div>
-    </aside>
-    
-    <main class="main">
-      <!-- Dashboard -->
-      <section class="content-section active" id="dashboard-section">
-        <h2 class="page-title">Dashboard</h2>
-        <p class="page-subtitle">Overview of your store</p>
-        <div class="stats-grid" id="statsGrid"></div>
-        <div class="card">
-          <div class="card-header"><h3>Recent Orders</h3></div>
-          <div class="card-body"><table><thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="recentOrders"></tbody></table></div>
-        </div>
-      </section>
-      
-      <!-- Orders -->
-      <section class="content-section" id="orders-section">
-        <h2 class="page-title">Orders</h2>
-        <p class="page-subtitle">All orders</p>
-        <div class="card">
-          <div class="card-header"><h3>Orders</h3></div>
-          <div class="card-body"><table><thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody id="ordersTable"></tbody></table></div>
-        </div>
-      </section>
-      
-      <!-- Customers -->
-      <section class="content-section" id="customers-section">
-        <h2 class="page-title">Customers</h2>
-        <p class="page-subtitle">All customers</p>
-        <div class="card">
-          <div class="card-header"><h3>Customers</h3></div>
-          <div class="card-body"><table><thead><tr><th>Name</th><th>Email</th><th>Orders</th><th>Joined</th></tr></thead><tbody id="customersTable"></tbody></table></div>
-        </div>
-      </section>
-      
-      <!-- Subscriptions -->
-      <section class="content-section" id="subscriptions-section">
-        <h2 class="page-title">Subscriptions</h2>
-        <p class="page-subtitle">Recurring subscriptions</p>
-        <div class="card">
-          <div class="card-header"><h3>Subscriptions</h3></div>
-          <div class="card-body"><table><thead><tr><th>ID</th><th>Customer</th><th>Product</th><th>Price</th><th>Status</th></tr></thead><tbody id="subscriptionsTable"></tbody></table></div>
-        </div>
-      </section>
-      
-      <!-- Settings -->
-      <section class="content-section" id="settings-section">
-        <h2 class="page-title">Settings</h2>
-        <p class="page-subtitle">Payment gateways</p>
-        <div class="card">
-          <div class="card-header"><h3>Gateways</h3></div>
-          <div class="card-body"><table><thead><tr><th>Name</th><th>Type</th><th>Status</th></tr></thead><tbody id="gatewaysTable"></tbody></table></div>
-        </div>
-      </section>
-    </main>
+  <div class="header">
+    <h1><span>🦀</span> PayLoop Orders</h1>
+    <button onclick="logout()">Sign Out</button>
+  </div>
+  
+  <div class="stats" id="stats"></div>
+  
+  <div class="orders">
+    <div class="orders-header">All Orders</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody"></tbody>
+    </table>
   </div>
   
   <!-- Modal -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header"><h3 id="modalTitle">Order Details</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Order Details</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
 
   <script>
-    // Auth
-    let token = localStorage.getItem('auth_token');
+    // Auth check
+    const token = localStorage.getItem('auth_token');
     if (!token) window.location.href = '/login';
     
     // API helper
-    async function api(url, opts = {}) {
-      const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...opts.headers } });
+    async function api(url) {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.status === 401) { localStorage.removeItem('auth_token'); window.location.href = '/login'; return; }
       return res.json();
     }
     
-    // Helpers
-    const fmt = (n) => '$' + (n || 0).toFixed(2);
-    const fmtDate = (d) => new Date(d).toLocaleDateString();
-    const badge = (s) => `<span class="badge badge-${s}">${s}</span>`;
-    const name = (c) => c ? `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email : 'N/A';
-    
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.getElementById(item.dataset.page + '-section').classList.add('active');
-        const page = item.dataset.page;
-        if (page === 'orders') loadOrders();
-        if (page === 'customers') loadCustomers();
-        if (page === 'subscriptions') loadSubs();
-        if (page === 'settings') loadGateways();
-      });
-    });
+    // Format helpers
+    const $ = (n) => n ? '$' + n.toFixed(2) : '$0.00';
+    const date = (d) => new Date(d).toLocaleDateString();
+    const name = (c) => c ? `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email : 'Unknown';
     
     // Load stats
     async function loadStats() {
-      const data = await api('/api/stats');
-      document.getElementById('statsGrid').innerHTML = `
-        <div class="stat-card success"><div class="label">Revenue</div><div class="value">${fmt(data.totalRevenue)}</div></div>
-        <div class="stat-card"><div class="label">Orders</div><div class="value">${data.totalOrders || 0}</div></div>
-        <div class="stat-card"><div class="label">Customers</div><div class="value">${data.totalCustomers || 0}</div></div>
-        <div class="stat-card warning"><div class="label">Subscriptions</div><div class="value">${data.activeSubscriptions || 0}</div></div>
-        <div class="stat-card success"><div class="label">Approved</div><div class="value">${data.approvedOrders || 0}</div></div>
-        <div class="stat-card danger"><div class="label">Declined</div><div class="value">${data.declinedOrders || 0}</div></div>
+      const s = await api('/api/stats');
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="stat-label">Revenue</div><div class="stat-value">${$(s.totalRevenue)}</div></div>
+        <div class="stat"><div class="stat-label">Orders</div><div class="stat-value">${s.totalOrders || 0}</div></div>
+        <div class="stat"><div class="stat-label">Approved</div><div class="stat-value">${s.approvedOrders || 0}</div></div>
+        <div class="stat"><div class="stat-label">Declined</div><div class="stat-value">${s.declinedOrders || 0}</div></div>
       `;
-    }
-    
-    // Load recent orders
-    async function loadRecentOrders() {
-      const orders = await api('/api/orders?limit=5');
-      document.getElementById('recentOrders').innerHTML = orders.length === 0 
-        ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">No orders yet</td></tr>'
-        : orders.map(o => `<tr><td><code>${o.id.slice(0,8)}</code></td><td>${name(o.customer)}</td><td>${fmt(o.total)}</td><td>${badge(o.status)}</td><td>${fmtDate(o.createdAt)}</td></tr>`).join('');
     }
     
     // Load orders
     async function loadOrders() {
       const orders = await api('/api/orders');
-      document.getElementById('ordersTable').innerHTML = orders.length === 0
-        ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">No orders yet</td></tr>'
-        : orders.map(o => `<tr><td><code>${o.id.slice(0,8)}</code></td><td>${name(o.customer)}<br><small style="color:#6b7280">${o.customer?.email || ''}</small></td><td>${fmt(o.total)}</td><td>${badge(o.status)}</td><td>${fmtDate(o.createdAt)}</td><td><button class="btn btn-secondary" onclick="viewOrder('${o.id}')">View</button></td></tr>`).join('');
+      const tbody = document.getElementById('ordersBody');
+      
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No orders yet</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td>${date(o.createdAt)}</td>
+          <td>${name(o.customer)}<br><small style="color:#64748b">${o.customer?.email || ''}</small></td>
+          <td><strong>${$(o.total)}</strong></td>
+          <td><span class="status status-${o.status}">${o.status}</span></td>
+          <td><button class="btn" onclick="viewOrder('${o.id}')">View</button></td>
+        </tr>
+      `).join('');
     }
     
-    // Load customers
-    async function loadCustomers() {
-      const customers = await api('/api/customers');
-      document.getElementById('customersTable').innerHTML = customers.length === 0
-        ? '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6b7280;">No customers yet</td></tr>'
-        : customers.map(c => `<tr><td>${name(c)}</td><td>${c.email}</td><td>${c.orders?.length || 0}</td><td>${fmtDate(c.createdAt)}</td></tr>`).join('');
-    }
-    
-    // Load subscriptions
-    async function loadSubs() {
-      const subs = await api('/api/subscriptions');
-      document.getElementById('subscriptionsTable').innerHTML = subs.length === 0
-        ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">No subscriptions yet</td></tr>'
-        : subs.map(s => `<tr><td><code>${s.id.slice(0,8)}</code></td><td>${name(s.customer)}</td><td>${s.name}</td><td>${fmt(s.price)}/mo</td><td>${badge(s.status)}</td></tr>`).join('');
-    }
-    
-    // Load gateways
-    async function loadGateways() {
-      const gws = await api('/api/settings/gateways');
-      document.getElementById('gatewaysTable').innerHTML = gws.length === 0
-        ? '<tr><td colspan="3" style="text-align:center;padding:20px;color:#6b7280;">No gateways</td></tr>'
-        : gws.map(g => `<tr><td>${g.name}</td><td>${g.type?.toUpperCase()}</td><td>${badge(g.isActive ? 'active' : 'paused')}</td></tr>`).join('');
-    }
-    
-    // View order
+    // View order detail
     async function viewOrder(id) {
       const o = await api('/api/orders/' + id);
       let items = [];
       try { items = JSON.parse(o.items || '[]'); } catch(e) {}
       
-      document.getElementById('modalTitle').textContent = 'Order ' + o.id.slice(0,8);
+      // Get subscriptions for this customer
+      const subs = await api('/api/subscriptions');
+      const customerSubs = subs.filter(s => s.customerId === o.customerId);
+      
+      document.getElementById('modalTitle').textContent = 'Order ' + o.id.slice(0, 8);
       document.getElementById('modalBody').innerHTML = `
-        <div style="background:${o.status === 'approved' ? '#d1fae5' : o.status === 'declined' ? '#fee2e2' : '#fef3c7'};padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <div><strong style="font-size:18px;text-transform:capitalize">${o.status}</strong></div>
-          <div style="font-size:24px;font-weight:700">${fmt(o.total)}</div>
+        <div style="background:${o.status === 'approved' ? '#d1fae5' : o.status === 'declined' ? '#fee2e2' : '#fef3c7'};padding:16px;border-radius:8px;margin-bottom:20px;">
+          <span class="status status-${o.status}" style="font-size:14px">${o.status.toUpperCase()}</span>
+          <span style="font-size:24px;font-weight:700;float:right">${$(o.total)}</span>
         </div>
-        <div class="grid">
-          <div class="box">
-            <h4>Customer</h4>
-            <p><strong>${name(o.customer)}</strong></p>
-            <p>${o.customer?.email || ''}</p>
-            <p>${o.customer?.phone || ''}</p>
-            <p>${o.customer?.address || ''} ${o.customer?.city || ''} ${o.customer?.state || ''} ${o.customer?.zip || ''}</p>
+        
+        <div class="row">
+          <div class="col">
+            <div class="section">
+              <div class="section-title">Customer</div>
+              <div class="field"><span class="field-label">Name:</span> <span class="field-value">${name(o.customer)}</span></div>
+              <div class="field"><span class="field-label">Email:</span> <span class="field-value">${o.customer?.email || ''}</span></div>
+              <div class="field"><span class="field-label">Phone:</span> <span class="field-value">${o.customer?.phone || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Address:</span> <span class="field-value">${o.customer?.address || ''} ${o.customer?.city || ''} ${o.customer?.state || ''} ${o.customer?.zip || ''}</span></div>
+            </div>
           </div>
-          <div class="box">
-            <h4>Payment</h4>
-            <p>Subtotal: ${fmt(o.subtotal)}</p>
-            <p>Tax: ${fmt(o.tax)}</p>
-            <p>Shipping: ${fmt(o.shipping)}</p>
-            <p style="font-size:18px;font-weight:700;margin-top:8px">Total: ${fmt(o.total)}</p>
-            <p style="margin-top:8px;font-size:12px;color:#6b7280">TX: ${o.nmiTransactionId || 'N/A'}</p>
+          <div class="col">
+            <div class="section">
+              <div class="section-title">Payment</div>
+              <div class="field"><span class="field-label">Subtotal:</span> <span class="field-value">${$(o.subtotal)}</span></div>
+              <div class="field"><span class="field-label">Tax:</span> <span class="field-value">${$(o.tax)}</span></div>
+              <div class="field"><span class="field-label">Shipping:</span> <span class="field-value">${$(o.shipping)}</span></div>
+              <div class="field"><span class="field-label">Transaction:</span> <span class="field-value">${o.nmiTransactionId || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Auth Code:</span> <span class="field-value">${o.nmiAuthCode || 'N/A'}</span></div>
+            </div>
           </div>
         </div>
-        <h4 style="margin:16px 0 8px">Items (${items.length})</h4>
-        ${items.map(i => `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e2e8f0">${i.image ? `<img src="${i.image}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">` : ''}<div style="flex:1"><strong>${i.name}</strong><br><small>${i.quantity} × $${i.price}</small></div><div><strong>$${(i.price * i.quantity).toFixed(2)}</strong></div></div>`).join('')}
-        <p style="margin-top:16px;font-size:12px;color:#6b7280">Created: ${new Date(o.createdAt).toLocaleString()}</p>
+        
+        <div class="section">
+          <div class="section-title">Items (${items.length})</div>
+          <div class="items-list">
+            ${items.map(i => `
+              <div class="item">
+                ${i.image ? `<img src="${i.image}" alt="">` : '<div style="width:48px;height:48px;background:#e2e8f0;border-radius:4px"></div>'}
+                <div class="item-info">
+                  <strong>${i.name}</strong><br>
+                  <small>Qty: ${i.quantity} × $${i.price}</small>
+                </div>
+                <div class="item-price">$${(i.price * i.quantity).toFixed(2)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        ${customerSubs.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Subscriptions</div>
+            ${customerSubs.map(s => `
+              <div class="subscription-box">
+                <h4>${s.name}</h4>
+                <div class="row">
+                  <div class="col">
+                    <div class="field"><span class="field-label">Price:</span> <span class="field-value">${$(s.price)}/month</span></div>
+                    <div class="field"><span class="field-label">Status:</span> <span class="status status-${s.status}">${s.status}</span></div>
+                  </div>
+                  <div class="col">
+                    <div class="field"><span class="field-label">Bills:</span> <span class="field-value">${s.totalBills || 0}</span></div>
+                    <div class="field"><span class="field-label">Next:</span> <span class="field-value">${s.nextBillDate ? date(s.nextBillDate) : 'N/A'}</span></div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        
+        <div style="font-size:12px;color:#64748b;margin-top:20px">
+          Order ID: ${o.id}<br>
+          Created: ${new Date(o.createdAt).toLocaleString()}
+        </div>
       `;
-      document.getElementById('modalOverlay').classList.add('show');
+      
+      document.getElementById('modal').classList.add('show');
     }
     
-    function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+    function closeModal() { document.getElementById('modal').classList.remove('show'); }
     function logout() { localStorage.removeItem('auth_token'); window.location.href = '/login'; }
     
     // Init
     loadStats();
-    loadRecentOrders();
+    loadOrders();
   </script>
 </body>
 </html>
