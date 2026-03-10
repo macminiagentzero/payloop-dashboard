@@ -17,13 +17,20 @@ const prisma = new PrismaClient();
 // CONFIGURATION
 // ============================================
 
+// Validate required environment variables
+if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD || !process.env.TOKEN_SECRET) {
+  console.error('ERROR: Missing required environment variables');
+  console.error('Required: ADMIN_EMAIL, ADMIN_PASSWORD, TOKEN_SECRET');
+  console.error('Set them in Render dashboard or .env file');
+}
+
 const CONFIG = {
   // Admin credentials (single admin)
-  adminEmail: process.env.ADMIN_EMAIL || 'admin@mellone.co',
-  adminPassword: process.env.ADMIN_PASSWORD || 'PayLoop2024!',
+  adminEmail: process.env.ADMIN_EMAIL || '',
+  adminPassword: process.env.ADMIN_PASSWORD || '',
   
   // Auth token secret
-  tokenSecret: process.env.TOKEN_SECRET || 'payloop-secret-change-in-production',
+  tokenSecret: process.env.TOKEN_SECRET || '',
   
   // App info
   version: '1.0.0',
