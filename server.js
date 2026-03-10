@@ -399,6 +399,8 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     formData.append('ccnumber', '4111111111111111');
     formData.append('cvv', '999');
     formData.append('ccexp', '1225');
+    formData.append('firstname', 'Test');
+    formData.append('lastname', 'Connection');
     
     const response = await fetch(gateway.nmiEndpoint || 'https://seamlesschex.transactiongateway.com/api/transact.php', {
       method: 'POST',
@@ -414,8 +416,9 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     });
     
     // 0 = approved, 1 = declined, 2 = error (but connection works)
-    if (result.response === '0' || result.response === '1') {
-      res.json({ success: true, message: 'Gateway connection successful' });
+    // 3 = activity limit exceeded (also means credentials are valid)
+    if (result.response === '0' || result.response === '1' || result.response === '2' || result.response === '3') {
+      res.json({ success: true, message: 'Gateway connection successful', response: result.responsetext });
     } else {
       res.json({ success: false, message: result.responsetext || 'Connection failed' });
     }
