@@ -401,6 +401,9 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     params.append('firstname', 'Test');
     params.append('lastname', 'Connection');
     
+    console.log('Testing gateway:', gateway.name, 'Endpoint:', gateway.nmiEndpoint);
+    console.log('Security key length:', gateway.nmiSecurityKey?.length);
+    
     const response = await fetch(gateway.nmiEndpoint || 'https://seamlesschex.transactiongateway.com/api/transact.php', {
       method: 'POST',
       body: params,
@@ -410,6 +413,8 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     });
     
     const text = await response.text();
+    console.log('NMI Response:', text);
+    
     const result = {};
     text.split('&').forEach(pair => {
       const [key, value] = pair.split('=');
@@ -421,12 +426,12 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     if (['0', '1', '2', '3'].includes(result.response)) {
       res.json({ success: true, message: 'Gateway connection successful', details: result.responsetext });
     } else {
-      res.json({ success: false, message: result.responsetext || 'Connection failed' });
+      res.json({ success: false, message: result.responsetext || 'Connection failed', response: result.response });
     }
     
   } catch (error) {
     console.error('Test gateway error:', error);
-    res.status(500).json({ error: 'Failed to test gateway' });
+    res.status(500).json({ error: 'Failed to test gateway', details: error.message });
   }
 });
 
