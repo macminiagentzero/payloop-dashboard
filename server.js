@@ -436,7 +436,17 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     // 0 = approved, 1 = declined, 2 = error, 3 = activity limit exceeded
     // All these mean credentials are valid and gateway is connected
     if (['0', '1', '2', '3'].includes(result.response)) {
-      res.json({ success: true, message: 'Gateway connection successful', details: result.responsetext });
+      const messages = {
+        '0': 'Test approved - gateway working',
+        '1': 'Test declined (normal) - gateway working', 
+        '2': 'Gateway connected (test card limit reached)',
+        '3': 'Gateway connected (activity limit)'
+      };
+      res.json({ 
+        success: true, 
+        message: messages[result.response] || 'Gateway connected',
+        responseCode: result.response 
+      });
     } else {
       res.json({ success: false, message: result.responsetext || 'Connection failed', response: result.response });
     }
