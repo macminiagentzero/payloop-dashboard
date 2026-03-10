@@ -392,6 +392,32 @@ app.delete('/api/settings/gateways/:id', async (req, res) => {
   }
 });
 
+app.patch('/api/settings/gateways/:id', async (req, res) => {
+  try {
+    const data = {};
+    
+    if (req.body.name !== undefined) data.name = req.body.name;
+    if (req.body.displayName !== undefined) data.displayName = req.body.displayName;
+    if (req.body.type !== undefined) data.type = req.body.type;
+    if (req.body.endpoint !== undefined) data.nmiEndpoint = req.body.endpoint;
+    if (req.body.securityKey !== undefined) data.nmiSecurityKey = req.body.securityKey;
+    if (req.body.merchantId !== undefined) data.nmiMerchantId = req.body.merchantId;
+    if (req.body.isActive !== undefined) data.isActive = req.body.isActive;
+    if (req.body.isDefault !== undefined) data.isDefault = req.body.isDefault;
+    
+    const gateway = await prisma.paymentGateway.update({
+      where: { id: req.params.id },
+      data
+    });
+    
+    res.json(gateway);
+    
+  } catch (error) {
+    console.error('Update gateway error:', error);
+    res.status(500).json({ error: 'Failed to update gateway' });
+  }
+});
+
 app.post('/api/settings/gateways/:id/test', async (req, res) => {
   try {
     const gateway = await prisma.paymentGateway.findUnique({
