@@ -1,4 +1,4 @@
-// PayLoop Dashboard - Same database as checkout (exact match)
+// PayLoop Dashboard - Introspected from actual database
 
 generator client {
   provider = "prisma-client-js"
@@ -9,10 +9,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Customer information
 model Customer {
-  id               String   @id @default(uuid())
-  email            String   @unique
+  id               String          @id @default(uuid())
+  email            String          @unique
   firstName        String
   lastName         String
   phone            String?
@@ -20,94 +19,155 @@ model Customer {
   city             String?
   state            String?
   zip              String?
-  country          String   @default("US")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  paymentMethods PaymentMethod[]
-  orders          Order[]
-  subscriptions   Subscription[]
+  country          String          @default("US")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  stripeCustomerId String?
+  orders           Order[]
+  paymentMethods   PaymentMethod[]
+  subscriptions    Subscription[]
 }
 
-// Payment methods
 model PaymentMethod {
-  id             String   @id @default(uuid())
+  id             String         @id @default(uuid())
   customerId     String
-  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  nmiVaultId     String?  @unique
-  
+  nmiToken       String         @unique
   cardLast4      String
   cardType       String
   cardExpMonth   String
   cardExpYear    String
-  
-  isDefault      Boolean  @default(false)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  orders        Order[]
+  billingAddress String?
+  billingCity    String?
+  billingState   String?
+  billingZip     String?
+  billingCountry String?        @default("US")
+  isDefault      Boolean        @default(false)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  orders         Order[]
+  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Subscription   Subscription[]
 }
 
-// Orders
 model Order {
-  id              String   @id @default(uuid())
-  customerId      String
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  paymentMethodId String?
-  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-  
-  gatewayId       String?
-  
-  type            String   @default("initial")
-  
-  subtotal        Float    @default(0)
-  tax             Float    @default(0)
-  shipping        Float    @default(0)
-  total           Float
-  currency        String   @default("USD")
-  
-  items           String
-  
-  nmiTransactionId String?  @unique
+  id               String         @id @default(uuid())
+  customerId       String
+  subscriptionId   String?
+  paymentMethodId  String?
+  type             String
+  subtotal         Float
+  tax              Float          @default(0)
+  shipping         Float          @default(0)
+  total            Float
+  currency         String         @default("USD")
+  items            String
+  nmiTransactionId String?        @unique
   nmiAuthCode      String?
   nmiResponse      String?
-  
-  status          String   @default("pending")
-  errorMessage    String?
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  status           String         @default("pending")
+  errorMessage     String?
+  threeDsRequired  Boolean        @default(false)
+  threeDsAuthData  String?
+  refundedAt       DateTime?
+  refundAmount     Float?
+  chargebackAt     DateTime?
+  chargebackAmount Float?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  shopifyOrderId   String?
+  shopifyOrderName String?
+  gatewayId        String?
+  customer         Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  Subscription     Subscription?  @relation(fields: [subscriptionId], references: [id])
 }
 
-// Payment gateways
 model PaymentGateway {
-  id              String   @id @default(uuid())
-  name            String   @unique
-  displayName     String
-  type            String
-  isActive        Boolean  @default(true)
-  isDefault       Boolean  @default(false)
-  
-  nmiSecurityKey  String?
-  nmiEndpoint     String?
-  nmiMerchantId   String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String    @unique
+  displayName    String?
+  type           String?   @default("nmi")
+  isActive       Boolean?  @default(true)
+  isDefault      Boolean?  @default(false)
+  nmiSecurityKey String?
+  nmiEndpoint    String?
+  nmiMerchantId  String?
+  monthlyCap     Float?    // Monthly processing limit in USD
+  createdAt      DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime? @default(now()) @updatedAt @db.Timestamp(6)
 }
 
-// Subscriptions - minimal fields that exist in DB
 model Subscription {
-  id              String   @id @default(uuid())
-  customerId      String
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  name            String
-  status          String   @default("active")
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                       String                     @id @default(uuid())
+  customerId               String
+  paymentMethodId          String
+  name                     String
+  description              String?
+  amount                   Float
+  originalAmount           Float
+  currency                 String                     @default("USD")
+  interval                 String
+  intervalCount            Int                        @default(1)
+  billingCycleStart        DateTime                   @default(now())
+  nextBillDate             DateTime?
+  lastBillDate             DateTime?
+  totalBillings            Int                        @default(0)
+  status                   String                     @default("active")
+  cancelledAt              DateTime?
+  cancelReason             String?
+  threeDsAuthData          String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  gatewayId                String?
+  Order                    Order[]
+  customer                 Customer                   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  PaymentMethod            PaymentMethod              @relation(fields: [paymentMethodId], references: [id])
+  SubscriptionPriceHistory SubscriptionPriceHistory[]
+}
+
+model AdminUser {
+  id           String    @id
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         String    @default("admin")
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+}
+
+model Setting {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String    @unique
+  value     String?
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model SubscriptionPriceHistory {
+  id             String       @id
+  subscriptionId String
+  oldAmount      Float
+  newAmount      Float
+  reason         String?
+  changedBy      String?
+  createdAt      DateTime     @default(now())
+  Subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionProduct {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  description    String?
+  price          Float?    @default(0)
+  interval       String?   @default("month")
+  intervalCount  Int?      @default(1)
+  showOnCheckout Boolean?  @default(true)
+  gatewayId      String?   @db.Uuid
+  isActive       Boolean?  @default(true)
+  createdAt      DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime? @default(now()) @db.Timestamp(6)
 }
