@@ -380,6 +380,18 @@ app.post('/api/settings/gateways', async (req, res) => {
   }
 });
 
+app.delete('/api/settings/gateways/:id', async (req, res) => {
+  try {
+    await prisma.paymentGateway.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete gateway error:', error);
+    res.status(500).json({ error: 'Failed to delete gateway' });
+  }
+});
+
 app.post('/api/settings/gateways/:id/test', async (req, res) => {
   try {
     const gateway = await prisma.paymentGateway.findUnique({
