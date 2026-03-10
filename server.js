@@ -339,14 +339,14 @@ app.patch('/api/subscriptions/:id', async (req, res) => {
 
 app.get('/api/settings/gateways', async (req, res) => {
   try {
-    const gateways = await prisma.gateway.findMany({
+    const gateways = await prisma.paymentGateway.findMany({
       orderBy: { name: 'asc' }
     });
     
     // Hide sensitive data
     const safe = gateways.map(g => ({
       ...g,
-      securityKey: g.securityKey ? '••••••••' + g.securityKey.slice(-4) : null
+      nmiSecurityKey: g.nmiSecurityKey ? '••••••••' + g.nmiSecurityKey.slice(-4) : null
     }));
     
     res.json(safe);
@@ -359,13 +359,14 @@ app.get('/api/settings/gateways', async (req, res) => {
 
 app.post('/api/settings/gateways', async (req, res) => {
   try {
-    const gateway = await prisma.gateway.create({
+    const gateway = await prisma.paymentGateway.create({
       data: {
         name: req.body.name,
+        displayName: req.body.displayName || req.body.name,
         type: req.body.type || 'nmi',
-        endpoint: req.body.endpoint,
-        securityKey: req.body.securityKey,
-        merchantId: req.body.merchantId,
+        nmiEndpoint: req.body.endpoint,
+        nmiSecurityKey: req.body.securityKey,
+        nmiMerchantId: req.body.merchantId,
         isActive: req.body.isActive ?? true,
         isDefault: req.body.isDefault ?? false
       }
@@ -381,7 +382,7 @@ app.post('/api/settings/gateways', async (req, res) => {
 
 app.post('/api/settings/gateways/:id/test', async (req, res) => {
   try {
-    const gateway = await prisma.gateway.findUnique({
+    const gateway = await prisma.paymentGateway.findUnique({
       where: { id: req.params.id }
     });
     
@@ -392,14 +393,14 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     // Test connection to NMI
     const FormData = require('form-data');
     const formData = new FormData();
-    formData.append('security_key', gateway.securityKey);
+    formData.append('security_key', gateway.nmiSecurityKey);
     formData.append('type', 'auth');
     formData.append('amount', '0.00');
     formData.append('ccnumber', '4111111111111111');
     formData.append('cvv', '999');
     formData.append('ccexp', '1225');
     
-    const response = await fetch(gateway.endpoint || 'https://seamlesschex.transactiongateway.com/api/transact.php', {
+    const response = await fetch(gateway.nmiEndpoint || 'https://seamlesschex.transactiongateway.com/api/transact.php', {
       method: 'POST',
       body: formData,
       headers: formData.getHeaders()
