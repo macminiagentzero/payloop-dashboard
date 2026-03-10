@@ -395,7 +395,7 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
     const formData = new FormData();
     formData.append('security_key', gateway.nmiSecurityKey);
     formData.append('type', 'auth');
-    formData.append('amount', '0.00');
+    formData.append('amount', '1.00');
     formData.append('ccnumber', '4111111111111111');
     formData.append('cvv', '999');
     formData.append('ccexp', '1225');
