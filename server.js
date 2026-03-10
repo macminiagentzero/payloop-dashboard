@@ -390,22 +390,23 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
       return res.status(404).json({ error: 'Gateway not found' });
     }
     
-    // Test connection to NMI
-    const FormData = require('form-data');
-    const formData = new FormData();
-    formData.append('security_key', gateway.nmiSecurityKey);
-    formData.append('type', 'auth');
-    formData.append('amount', '1.00');
-    formData.append('ccnumber', '4111111111111111');
-    formData.append('cvv', '999');
-    formData.append('ccexp', '1225');
-    formData.append('firstname', 'Test');
-    formData.append('lastname', 'Connection');
+    // Test connection to NMI using URLSearchParams
+    const params = new URLSearchParams();
+    params.append('security_key', gateway.nmiSecurityKey);
+    params.append('type', 'auth');
+    params.append('amount', '1.00');
+    params.append('ccnumber', '4111111111111111');
+    params.append('cvv', '999');
+    params.append('ccexp', '1225');
+    params.append('firstname', 'Test');
+    params.append('lastname', 'Connection');
     
     const response = await fetch(gateway.nmiEndpoint || 'https://seamlesschex.transactiongateway.com/api/transact.php', {
       method: 'POST',
-      body: formData,
-      headers: formData.getHeaders()
+      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
     });
     
     const text = await response.text();
@@ -415,10 +416,10 @@ app.post('/api/settings/gateways/:id/test', async (req, res) => {
       if (key) result[key] = value;
     });
     
-    // 0 = approved, 1 = declined, 2 = error (but connection works)
-    // 3 = activity limit exceeded (also means credentials are valid)
-    if (result.response === '0' || result.response === '1' || result.response === '2' || result.response === '3') {
-      res.json({ success: true, message: 'Gateway connection successful', response: result.responsetext });
+    // 0 = approved, 1 = declined, 2 = error, 3 = activity limit exceeded
+    // All these mean credentials are valid and gateway is connected
+    if (['0', '1', '2', '3'].includes(result.response)) {
+      res.json({ success: true, message: 'Gateway connection successful', details: result.responsetext });
     } else {
       res.json({ success: false, message: result.responsetext || 'Connection failed' });
     }
