@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayLoop - Subscription Products</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; }
+    
+    .header { background: white; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+    .nav { display: flex; gap: 16px; }
+    .nav a { text-decoration: none; color: #64748b; padding: 8px 16px; border-radius: 6px; }
+    .nav a:hover { background: #f1f5f9; }
+    .nav a.active { background: #6366f1; color: white; }
+    
+    .content { padding: 24px; }
+    
+    .card { background: white; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h2 { font-size: 16px; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th { background: #f8fafc; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #64748b; }
+    tr:hover td { background: #f8fafc; }
+    
+    .btn { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #4f46e5; }
+    .btn-secondary { background: #f1f5f9; color: #64748b; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+    
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-inactive { background: #fee2e2; color: #991b1b; }
+    
+    /* Modal */
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal.show { display: flex; }
+    .modal-content { background: white; border-radius: 12px; width: 100%; max-width: 500px; }
+    .modal-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 18px; }
+    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: #64748b; line-height: 1; }
+    .modal-body { padding: 20px; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+    .form-group textarea { min-height: 80px; }
+    
+    .checkbox-group { display: flex; align-items: center; gap: 8px; }
+    .checkbox-group input { width: auto; }
+    
+    .empty { text-align: center; padding: 40px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><span>🦀</span> PayLoop Dashboard</h1>
+    <div class="nav">
+      <a href="/dashboard.html">Orders</a>
+      <a href="/subscriptions.html">Subscriptions</a>
+      <a href="/subscription-products.html" class="active">Products</a>
+      <a href="/gateways.html">Gateways</a>
+    </div>
+    <button onclick="logout()">Sign Out</button>
+  </div>
+  
+  <div class="content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Subscription Products</h2>
+        <button class="btn" onclick="openModal()">+ Add Product</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Interval</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="productsBody">
+          <tr><td colspan="5" class="empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Subscription Product</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm">
+          <input type="hidden" id="productId">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="name" placeholder="e.g., VIP Membership" required>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="description" placeholder="Optional description"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Price ($)</label>
+            <input type="number" id="price" step="0.01" placeholder="9.99" required>
+          </div>
+          <div class="form-group">
+            <label>Interval</label>
+            <select id="interval">
+              <option value="month">Monthly</option>
+              <option value="year">Yearly</option>
+              <option value="week">Weekly</option>
+            </select>
+          </div>
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="showOnCheckout" checked>
+            <label for="showOnCheckout">Show on checkout page</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="isActive" checked>
+            <label for="isActive">Active</label>
+          </div>
+          <button type="submit" class="btn" style="width: 100%;">Save Product</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = window.location.origin;
+    
+    // Check auth
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+    
+    // Load products
+    async function loadProducts() {
+      try {
+        const res = await fetch(API_URL + '/api/subscription-products', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const products = await res.json();
+        
+        const tbody = document.getElementById('productsBody');
+        
+        if (!products.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty">No products yet. Click "+ Add Product" to create one.</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = products.map(p => `
+          <tr>
+            <td><strong>${p.name}</strong>${p.description ? '<br><small style="color:#64748b">' + p.description + '</small>' : ''}</td>
+            <td>$${(p.price || 0).toFixed(2)}</td>
+            <td>${p.intervalCount || 1} ${p.interval || 'month'}${(p.intervalCount || 1) > 1 ? 's' : ''}</td>
+            <td><span class="badge ${p.isActive ? 'badge-active' : 'badge-inactive'}">${p.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">Edit</button>
+              <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')" style="color: #dc2626;">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Error loading products:', e);
+        document.getElementById('productsBody').innerHTML = '<tr><td colspan="5" class="empty">Failed to load products</td></tr>';
+      }
+    }
+    
+    function openModal(product = null) {
+      document.getElementById('modal').classList.add('show');
+      document.getElementById('modalTitle').textContent = product ? 'Edit Product' : 'Add Subscription Product';
+      document.getElementById('productForm').reset();
+      document.getElementById('productId').value = product?.id || '';
+      
+      if (product) {
+        document.getElementById('name').value = product.name || '';
+        document.getElementById('description').value = product.description || '';
+        document.getElementById('price').value = product.price || '';
+        document.getElementById('interval').value = product.interval || 'month';
+        document.getElementById('showOnCheckout').checked = product.showOnCheckout !== false;
+        document.getElementById('isActive').checked = product.isActive !== false;
+      }
+    }
+    
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+    
+    async function editProduct(id) {
+      const res = await fetch(API_URL + '/api/subscription-products', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const products = await res.json();
+      const product = products.find(p => p.id === id);
+      if (product) openModal(product);
+    }
+    
+    async function deleteProduct(id) {
+      if (!confirm('Are you sure you want to delete this product?')) return;
+      
+      try {
+        await fetch(API_URL + '/api/subscription-products/' + id, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        loadProducts();
+      } catch (e) {
+        alert('Failed to delete product');
+      }
+    }
+    
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('productId').value;
+      const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        price: parseFloat(document.getElementById('price').value),
+        interval: document.getElementById('interval').value,
+        showOnCheckout: document.getElementById('showOnCheckout').checked,
+        isActive: document.getElementById('isActive').checked
+      };
+      
+      try {
+        const url = id ? API_URL + '/api/subscription-products/' + id : API_URL + '/api/subscription-products';
+        const method = id ? 'PATCH' : 'POST';
+        
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+          closeModal();
+          loadProducts();
+        } else {
+          alert('Failed to save product');
+        }
+      } catch (e) {
+        alert('Error saving product');
+      }
+    });
+    
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    }
+    
+    loadProducts();
+  </script>
+</body>
+</html>

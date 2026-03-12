@@ -341,6 +341,79 @@ app.patch('/api/subscriptions/:id', async (req, res) => {
 });
 
 // ============================================
+// SUBSCRIPTION PRODUCTS API
+// ============================================
+
+app.get('/api/subscription-products', async (req, res) => {
+  try {
+    const products = await prisma.subscriptionProduct.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json(products);
+  } catch (error) {
+    console.error('Subscription products error:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription products' });
+  }
+});
+
+app.post('/api/subscription-products', async (req, res) => {
+  try {
+    const product = await prisma.subscriptionProduct.create({
+      data: {
+        name: req.body.name,
+        description: req.body.description,
+        price: parseFloat(req.body.price),
+        interval: req.body.interval || 'month',
+        intervalCount: req.body.intervalCount || 1,
+        showOnCheckout: req.body.showOnCheckout ?? true,
+        gatewayId: req.body.gatewayId || null,
+        isActive: true
+      }
+    });
+    res.json(product);
+  } catch (error) {
+    console.error('Create subscription product error:', error);
+    res.status(500).json({ error: 'Failed to create subscription product' });
+  }
+});
+
+app.patch('/api/subscription-products/:id', async (req, res) => {
+  try {
+    const data = {};
+    if (req.body.name !== undefined) data.name = req.body.name;
+    if (req.body.description !== undefined) data.description = req.body.description;
+    if (req.body.price !== undefined) data.price = parseFloat(req.body.price);
+    if (req.body.interval !== undefined) data.interval = req.body.interval;
+    if (req.body.intervalCount !== undefined) data.intervalCount = req.body.intervalCount;
+    if (req.body.showOnCheckout !== undefined) data.showOnCheckout = req.body.showOnCheckout;
+    if (req.body.gatewayId !== undefined) data.gatewayId = req.body.gatewayId;
+    if (req.body.isActive !== undefined) data.isActive = req.body.isActive;
+    
+    const product = await prisma.subscriptionProduct.update({
+      where: { id: req.params.id },
+      data
+    });
+    res.json(product);
+  } catch (error) {
+    console.error('Update subscription product error:', error);
+    res.status(500).json({ error: 'Failed to update subscription product' });
+  }
+});
+
+app.delete('/api/subscription-products/:id', async (req, res) => {
+  try {
+    await prisma.subscriptionProduct.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete subscription product error:', error);
+    res.status(500).json({ error: 'Failed to delete subscription product' });
+  }
+});
+
+// ============================================
 // GATEWAYS API
 // ============================================
 
